@@ -4,8 +4,8 @@ from blog.models import Page, Post
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import redirect, render
-from django.views.generic import ListView
+from django.shortcuts import redirect
+from django.views.generic import DetailView, ListView
 
 PER_PAGE = 9
 
@@ -152,46 +152,43 @@ class SearchListView(PostListView):
         return context
 
 
-def page(request, slug):
-    page_obj = (
-        Page.objects
-        .filter(is_published=True)
-        .filter(slug=slug)
-        .first()
-    )
+class PageDetailView(DetailView):
+    model = Page
+    template_name = 'blog/pages/page.html'
+    slug_field = 'slug'
+    context_object_name = 'page'
 
-    if page_obj is None:
-        raise Http404()
+    def get_queryset(self):
+        return super().get_queryset().filter(is_published=True)
 
-    page_title = f'{page_obj.title} - '
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-    return render(
-        request,
-        'blog/pages/page.html',
-        {
-            'page': page_obj,
+        page = self.get_object()
+        page_title = f'{page.title} - '  # type: ignore
+        context.update({
             'page_title': page_title,
-        }
-    )
+        })
+
+        return context
 
 
-def post(request, slug):
-    post_obj = (
-        Post.objects.get_published()  # type: ignore
-        .filter(slug=slug)
-        .first()
-    )
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/pages/post.html'
+    slug_field = 'slug'
+    context_object_name = 'post'
 
-    if post_obj is None:
-        raise Http404()
+    def get_queryset(self):
+        return super().get_queryset().filter(is_published=True)
 
-    page_title = f'{post_obj.title} - '
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-    return render(
-        request,
-        'blog/pages/post.html',
-        {
-            'post': post_obj,
+        post = self.get_object()
+        page_title = f'{post.title} - '  # type: ignore
+        context.update({
             'page_title': page_title,
-        }
-    )
+        })
+
+        return context
